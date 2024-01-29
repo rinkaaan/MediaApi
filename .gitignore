@@ -1,0 +1,9 @@
+/poc/backblaze/.env
+/poc/backblaze/test.mp4
+*.db
+/poc/files/*
+.env
+*.jpeg
+*.jpg
+*.png
+__pycache__

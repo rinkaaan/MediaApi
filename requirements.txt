@@ -1,0 +1,9 @@
+b2sdk
+python-dotenv
+yt-dlp
+gallery-dl
+apiflask[yaml]
+flask-cors
+flask-socketio
+svix-ksuid
+SQLAlchemy

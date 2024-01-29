@@ -1,0 +1,45 @@
+{
+  "name": "Lincoln's AltStore Source",
+  "identifier": "com.nguylinc.altstore",
+  "apps": [
+    {
+      "name": "Media",
+      "bundleIdentifier": "com.nguylinc.media",
+      "developerName": "Lincoln Nguyen",
+      "subtitle": "One place for all your photos and videos.",
+      "localizedDescription": "Media is an app available for iOS and Mac that lets you view and manage your photos and videos.\n\nPlease not that you will need to set up your own Backblaze B2 account to use this app.",
+      "iconURL": "https://cdn.oatmealdome.me/dolphinios/AppIcon.appiconset/ios_marketing1024x1024.png",
+      "tintColor": "41cdff",
+      "screenshotURLs": ["https://cdn.oatmealdome.me/dolphinios/altstore/screenshots/screenshot_6s_1.PNG", "https://cdn.oatmealdome.me/dolphinios/altstore/screenshots/screenshot_6s_2.PNG", "https://cdn.oatmealdome.me/dolphinios/altstore/screenshots/screenshot_6s_3_reup.PNG", "https://cdn.oatmealdome.me/dolphinios/altstore/screenshots/screenshot_6s_4_edit.png"],
+      "beta": false,
+      "versions": [
+        {
+          "version": "1.0.0",
+          "date": "2022-09-11T22:00:00.0000000Z",
+          "localizedDescription": "This update contains the following changes:\n\n- Fixed ubershaders.\n- Fixed fastmem crashing on iOS 16.\n\nPlease update Media to version 1.0.0 before attempting to use it on iOS 16.",
+          "downloadURL": "https://f005.backblazeb2.com/file/nguylinc/ipas/photos.ipa",
+          "size": 1449327,
+          "minOSVersion": "12.0",
+          "maxOSVersion": "99.0"
+        }
+      ],
+      "version": "1.0.0",
+      "versionDate": "2022-09-11T22:00:00.0000000Z",
+      "versionDescription": "This update contains the following changes:\n\n- Fixed ubershaders.\n- Fixed fastmem crashing on iOS 16.\n\nPlease update Media to version 1.0.0 before attempting to use it on iOS 16.",
+      "downloadURL": "https://f005.backblazeb2.com/file/nguylinc/ipas/photos.ipa",
+      "size": 1449327
+    }
+  ],
+  "news": [
+    {
+      "title": "Media Version 3.2.0 has been released!",
+      "identifier": "dolphinios-version-3-2-0-release",
+      "caption": "Finally, the public version of Media version 3.2.0 has been released!",
+      "date": "2022-05-22T00:00:00.0000000Z",
+      "tintColor": "0074f8",
+      "imageURL": "https://cdn.oatmealdome.me/dolphinios/altstore/altstore-banner-3-2-0.png",
+      "url": "https://oatmealdome.me/blog/dolphinios-ver-3-2-0/",
+      "notify": false
+    }
+  ]
+}
