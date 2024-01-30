@@ -4,6 +4,8 @@ info:
 tags:
 - name: Album
 - name: Media
+servers:
+- url: http://localhost:34200/
 paths:
   /album/:
     post:
@@ -396,4 +398,3 @@ components:
           type: string
         album_id:
           type: string
-

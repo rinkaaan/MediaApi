@@ -26,9 +26,7 @@ class AddMediaIn(Schema):
 @media_bp.input(AddMediaIn, arg_name="params")
 @media_bp.output(MediaSchema)
 def add_media(params):
-    from api.app import session, bucket
-
-    media = MediaModel()
+    from api.app import session, bucket, CACHE_DOMAIN
 
     command = f"yt-dlp --write-info-json --skip-download -o metadata --cookies ~/Desktop/cookies.txt \"{params['media_url']}\""
     process = subprocess.run(command, shell=True)
@@ -62,7 +60,7 @@ def add_media(params):
             # extract image extension from thumbnail url
             thumbnail_extension = os.path.basename(thumbnail).split(".")[1].split("?")[0]
             thumbnail_filename = f"thumbnail.{thumbnail_extension}"
-            thumbnail_path = f"thumbnails/{website}/{id}.{thumbnail_extension}"
+            thumbnail_path = f"videos/{website}/{id}/thumbnail.{thumbnail_extension}"
             command = f"curl \"{thumbnail}\" -o \"{thumbnail_filename}\""
             process = subprocess.run(command, shell=True)
 
@@ -75,11 +73,10 @@ def add_media(params):
             )
             subprocess.run(f"rm thumbnail.{thumbnail_extension}", shell=True)
 
-            cache_domain = os.getenv("CACHE_DOMAIN")
-            thumbnail = f"{cache_domain}/file/{bucket.name}/{thumbnail_path}"
+            thumbnail = f"{CACHE_DOMAIN}/file/{bucket.name}/{thumbnail_path}"
 
+            media = MediaModel()
             media.id = f"{website}#{id}"
-            media.uploaded_at = upload_date
             media.thumbnail_path = thumbnail
             media.uploader = uploader
             media.duration = duration
@@ -111,79 +108,142 @@ def add_media(params):
                 session.add(album)
                 media.albums.append(album)
 
-            # if media_type not an album, add as new album
-            q = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos")
-            if not q.first():
-                print(f"media_type=video not found, creating new album")
-                album = AlbumModel()
-                album.name = f"media_type=Videos"
-                album.thumbnail_path = thumbnail
-                session.add(album)
-                media.albums.append(album)
+            videos_album = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos").first()
+            media.albums.append(videos_album)
+
+            session.add(media)
 
             subprocess.run("rm metadata.info.json", shell=True)
-    else:
-        raise HTTPError(400, "Invalid media URL")
-    # else:
-    #     command = f"gallery-dl --no-download --dump-json --cookies ~/Desktop/cookies.txt \"{params['media_url']}\" > metadata.json"
-    #     process = subprocess.run(command, shell=True)
-    #     if process.returncode == 0:
-    #         # read files/metadata.json
-    #         with open("metadata.json", "r") as f:
-    #             metadata = json.load(f)
-    #
-    #             print(metadata)
-    #
-    #             for image_obj in metadata:
-    #                 # skip objects with length != 3
-    #                 if len(image_obj) != 3:
-    #                     continue
-    #                 image_url = image_obj[1]
-    #                 image_data = image_obj[2]
-    #                 category = image_data["category"]
-    #
-    #                 if category == "twitter":
-    #                     image_data = image_obj[2]
-    #                     author = image_data["author"]["name"]
-    #                     tweet_id = image_data["tweet_id"]
-    #                     webpage_url = f"https://twitter.com/{author}/status/{tweet_id}"
-    #                     # content = image_data["content"]
-    #
-    #                     print(image_url)
-    #                     print(author)
-    #                     print(webpage_url)
-    #                     # print(content)
-    #                 elif category == "instagram":
-    #                     image_data = image_obj[2]
-    #                     username = image_data["username"]
-    #                     post_shortcode = image_data["post_shortcode"]
-    #                     webpage_url = f"https://www.instagram.com/p/{post_shortcode}"
-    #                     # description = image_data["description"]
-    #
-    #                     print(image_url)
-    #                     print(username)
-    #                     print(webpage_url)
-    #                     # print(description)
-    #                 else:
-    #                     raise HTTPError(422, "Unsupported photo website")
-    #
-    #             subprocess.run("rm metadata.json", shell=True)
-    #     else:
-    #         raise HTTPError(400, "Invalid media URL")
 
-    # media.albums_text = " ".join([f"#{album.name}" for album in media.albums])
+    # else:
+    #     raise HTTPError(400, "Invalid media URL")
+    else:
+        command = f"gallery-dl --no-download --dump-json --cookies ~/Desktop/cookies.txt \"{params['media_url']}\" > metadata.json"
+        process = subprocess.run(command, shell=True)
+
+        if process.returncode == 0:
+            # read files/metadata.json
+            with open("metadata.json", "r") as f:
+                metadata = json.load(f)
+
+                photos_album = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Photos").first()
+
+                for image_obj in metadata:
+                    # skip objects with length != 3
+                    if len(image_obj) != 3:
+                        continue
+                    image_url = image_obj[1]
+                    image_data = image_obj[2]
+                    category = image_data["category"]
+                    num = image_data["num"]
+                    image_extension = image_data["extension"]
+                    media = MediaModel()
+
+                    if category == "twitter":
+                        image_data = image_obj[2]
+                        uploader = image_data["author"]["nick"]
+                        username = image_data["author"]["name"]
+                        image_id = image_data["tweet_id"]
+                        webpage_url = f"https://twitter.com/{username}/status/{image_id}"
+                        # content = image_data["content"]
+
+                        print(image_url)
+                        print(uploader)
+                        print(webpage_url)
+                        # print(content)
+
+                        media.id = f"twitter#{image_id}#{num}"
+                        media.uploader = uploader
+                        media.webpage_url = webpage_url
+
+                    elif category == "instagram":
+                        image_data = image_obj[2]
+                        uploader = image_data["fullname"]
+                        image_id = image_data["post_shortcode"]
+                        webpage_url = f"https://www.instagram.com/p/{image_id}"
+                        # description = image_data["description"]
+
+                        print(image_url)
+                        print(uploader)
+                        print(webpage_url)
+                        # print(description)
+
+                        media.id = f"instagram#{image_id}#{num}"
+                        media.uploader = uploader
+                        media.webpage_url = webpage_url
+
+                    else:
+                        raise HTTPError(422, "Unsupported photo website")
+
+                    # Download image at image_url
+                    # extract image extension from image url
+                    image_filename = f"image.{image_extension}"
+                    image_path = f"images/{category}/{image_id}/{num}.{image_extension}"
+                    command = f"curl \"{image_url}\" -o \"{image_filename}\""
+                    process = subprocess.run(command, shell=True)
+
+                    if process.returncode != 0:
+                        raise HTTPError(400, "Error downloading image")
+
+                    bucket.upload_local_file(
+                        local_file=image_filename,
+                        file_name=image_path,
+                    )
+                    subprocess.run(f"rm image.{image_extension}", shell=True)
+
+                    image_url = f"{CACHE_DOMAIN}/file/{bucket.name}/{image_path}"
+                    media.thumbnail_path = image_url
+
+                    # set thumbnail of all albums to thumbnail of media
+                    q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
+                    for album in q.all():
+                        album.thumbnail_path = image_url
+                        media.albums.append(album)
+
+                    # append photos album to media
+                    media.albums.append(photos_album)
+
+                    if num == 1:
+                        # if uploader not an album, add as new album
+                        q = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}")
+                        if not q.first():
+                            print(f"uploader={uploader} not found, creating new album")
+                            uploader_album = AlbumModel()
+                            uploader_album.name = f"uploader={uploader}"
+                            uploader_album.thumbnail_path = image_url
+                            session.add(uploader_album)
+
+                        # if website not an album, add as new album
+                        q = session.query(AlbumModel).filter(AlbumModel.name == f"website={category}")
+                        if not q.first():
+                            print(f"website={category} not found, creating new album")
+                            website_album = AlbumModel()
+                            website_album.name = f"website={category}"
+                            website_album.thumbnail_path = image_url
+                            session.add(website_album)
+
+                    uploader_album = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}").first()
+                    website_album = session.query(AlbumModel).filter(AlbumModel.name == f"website={category}").first()
+
+                    media.albums.append(uploader_album)
+                    media.albums.append(website_album)
+
+                    session.add(media)
+
+                subprocess.run("rm metadata.json", shell=True)
+
+                # update thumbnail of photos album
+                photos_album.thumbnail_path = image_url
+        else:
+            raise HTTPError(400, "Invalid media URL")
 
     try:
-        session.add(media)
         session.commit()
-        session.refresh(media)
     except IntegrityError:
         session.rollback()
         raise HTTPError(400, "Media already exists")
 
-    media_dict = media.to_dict()
-    media_dict["albums"] = [album.to_dict() for album in media.albums]
-    return media_dict
+    return {}
 
 
 class AddMediaToAlbumIn(Schema):
@@ -280,7 +340,7 @@ def query_media(params):
     #     q = q.filter(MediaModel.title.contains(params["search"]))
 
     if params["descending"]:
-        q = q.order_by(desc(MediaModel.id))
+        q = q.order_by(desc(MediaModel.created_at))
     q = q.limit(params["limit"])
 
     if params["album_id"]:

@@ -9,7 +9,7 @@ from flask_socketio import SocketIO
 
 from api.resources.album import album_bp
 from api.resources.media import media_bp
-from models.base import Base
+from models.base import Base, AlbumModel
 from nguylinc_python_utils.sqlalchemy import init_sqlite_db
 
 load_dotenv()
@@ -58,6 +58,31 @@ def add_fake_delay():
 
 port = 34200
 BASE_URL = "http://127.0.0.1:" + str(port)
+CACHE_DOMAIN = os.getenv("CACHE_DOMAIN")
+
+
+def init_models():
+    from api.app import session
+
+    # if media_type=Videos not found, create it
+    q = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos")
+    if not q.first():
+        print(f"media_type=video not found, creating new album")
+        album = AlbumModel()
+        album.name = f"media_type=Videos"
+        session.add(album)
+
+    # if media_type=Photos not found, create it
+    q = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Photos")
+    if not q.first():
+        print(f"media_type=photo not found, creating new album")
+        album = AlbumModel()
+        album.name = f"media_type=Photos"
+        session.add(album)
+
+    session.commit()
+
 
 if __name__ == "__main__":
+    init_models()
     app.run(port=port, debug=True)
