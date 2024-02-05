@@ -14,9 +14,13 @@ class AddAlbumIn(Schema):
     name = String()
 
 
+class AddAlbumOut(Schema):
+    name = String()
+
+
 @album_bp.post("/")
 @album_bp.input(AddAlbumIn, arg_name="params")
-@album_bp.output(AlbumSchema)
+@album_bp.output(AddAlbumOut)
 def add_album(params):
     from api.app import session
     try:
@@ -28,7 +32,9 @@ def add_album(params):
     except IntegrityError:
         session.rollback()
         raise HTTPError(400, "Album already exists")
-    return album.to_dict()
+    return {
+        "name": album.name
+    }
 
 
 class QueryAlbumsIn(Schema):

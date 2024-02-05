@@ -4,8 +4,6 @@ info:
 tags:
 - name: Album
 - name: Media
-servers:
-- url: http://localhost:34200/
 paths:
   /album/:
     post:
@@ -15,7 +13,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Album'
+                $ref: '#/components/schemas/AddAlbumOut'
           description: Successful response
         '422':
           content:
@@ -84,7 +82,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Media'
+                $ref: '#/components/schemas/AddMediaOut'
           description: Successful response
         '422':
           content:
@@ -212,7 +210,7 @@ paths:
       tags:
       - Media
       summary: Query Media
-  /media/add-to-album:
+  /media/add-to-albums:
     post:
       parameters: []
       responses:
@@ -229,12 +227,12 @@ paths:
           description: Validation error
       tags:
       - Media
-      summary: Add Media To Album
+      summary: Add Media To Albums
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddMediaToAlbumIn'
+              $ref: '#/components/schemas/AddMediaToAlbumsIn'
   /media/remove-from-album:
     post:
       parameters: []
@@ -281,6 +279,18 @@ components:
       properties:
         name:
           type: string
+    AddAlbumOut:
+      type: object
+      properties:
+        name:
+          type: string
+    DeleteAlbumIn:
+      type: object
+      properties:
+        album_ids:
+          type: array
+          items:
+            type: string
     Album:
       type: object
       properties:
@@ -296,13 +306,6 @@ components:
         updated_at:
           type: string
           format: date-time
-    DeleteAlbumIn:
-      type: object
-      properties:
-        album_ids:
-          type: array
-          items:
-            type: string
     Media:
       type: object
       properties:
@@ -355,10 +358,11 @@ components:
       properties:
         media_url:
           type: string
-        album_ids:
-          type: array
-          items:
-            type: string
+    AddMediaOut:
+      type: object
+      properties:
+        website:
+          type: string
     DeleteMediaIn:
       type: object
       properties:
@@ -384,13 +388,15 @@ components:
             $ref: '#/components/schemas/Media'
         no_more_media:
           type: boolean
-    AddMediaToAlbumIn:
+    AddMediaToAlbumsIn:
       type: object
       properties:
         media_id:
           type: string
-        album_id:
-          type: string
+        album_ids:
+          type: array
+          items:
+            type: string
     RemoveMediaFromAlbumIn:
       type: object
       properties:
@@ -398,3 +404,4 @@ components:
           type: string
         album_id:
           type: string
+

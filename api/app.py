@@ -14,14 +14,16 @@ from nguylinc_python_utils.sqlalchemy import init_sqlite_db
 
 load_dotenv()
 
-b2_account_id = os.getenv("B2_ACCOUNT_ID")
-b2_application_key = os.getenv("B2_APPLICATION_KEY")
-b2_bucket_name = os.getenv("B2_BUCKET_NAME")
+B2_ACCOUNT_ID = os.getenv("B2_ACCOUNT_ID")
+B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY")
+B2_BUCKET_NAME = os.getenv("B2_BUCKET_NAME")
+COOKIES_PATH = os.getenv("COOKIES_PATH")
+CACHE_DOMAIN = os.getenv("CACHE_DOMAIN")
 
 info = InMemoryAccountInfo()
 b2_api = B2Api(info)
-b2_api.authorize_account("production", b2_account_id, b2_application_key)
-bucket = b2_api.get_bucket_by_name(b2_bucket_name)
+b2_api.authorize_account("production", B2_ACCOUNT_ID, B2_APPLICATION_KEY)
+bucket = b2_api.get_bucket_by_name(B2_BUCKET_NAME)
 
 app = APIFlask(__name__, title="Media API", version="0.1.0", spec_path="/openapi.yaml", docs_ui="rapidoc")
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -58,7 +60,6 @@ def add_fake_delay():
 
 port = 34200
 BASE_URL = "http://127.0.0.1:" + str(port)
-CACHE_DOMAIN = os.getenv("CACHE_DOMAIN")
 
 
 def init_models():

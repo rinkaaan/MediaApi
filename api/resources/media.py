@@ -15,21 +15,25 @@ media_bp = APIBlueprint("Media", __name__, url_prefix="/media")
 
 
 class AddMediaIn(Schema):
-    # title = String()
-    # thumbnail_path = String()
     media_url = String()
-    # media_type = String()
-    album_ids = List(String(validate=validate_ksuid))
+    # album_ids = List(String(validate=validate_ksuid))
+
+
+class AddMediaOut(Schema):
+    website = String()
 
 
 @media_bp.post("/")
 @media_bp.input(AddMediaIn, arg_name="params")
-@media_bp.output(MediaSchema)
+@media_bp.output(AddMediaOut)
 def add_media(params):
-    from api.app import session, bucket, CACHE_DOMAIN
+    from api.app import session, bucket, CACHE_DOMAIN, COOKIES_PATH
 
-    command = f"yt-dlp --write-info-json --skip-download -o metadata --cookies ~/Desktop/cookies.txt \"{params['media_url']}\""
+    command = f"yt-dlp --write-info-json --skip-download -o metadata --cookies {COOKIES_PATH} \"{params['media_url']}\""
     process = subprocess.run(command, shell=True)
+
+    website = None
+
     if process.returncode == 0:
         # read files/metadata.json
         with open("metadata.info.json", "r") as f:
@@ -55,6 +59,11 @@ def add_media(params):
             print(upload_date)
             print(duration)
             print(webpage_url)
+
+            # check if media already exists
+            q = session.query(MediaModel).filter(MediaModel.id == f"{website}#{id}")
+            if q.first():
+                raise HTTPError(400, "Media already exists")
 
             # download image at thumbnail
             # extract image extension from thumbnail url
@@ -82,11 +91,11 @@ def add_media(params):
             media.duration = duration
             media.webpage_url = webpage_url
 
-            # set thumbnail of all albums to thumbnail of media
-            q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
-            for album in q.all():
-                album.thumbnail_path = thumbnail
-                media.albums.append(album)
+            # # set thumbnail of all albums to thumbnail of media
+            # q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
+            # for album in q.all():
+            #     album.thumbnail_path = thumbnail
+            #     media.albums.append(album)
 
             # if uploader not an album, add as new album
             q = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}")
@@ -118,7 +127,7 @@ def add_media(params):
     # else:
     #     raise HTTPError(400, "Invalid media URL")
     else:
-        command = f"gallery-dl --no-download --dump-json --cookies ~/Desktop/cookies.txt \"{params['media_url']}\" > metadata.json"
+        command = f"gallery-dl --no-download --dump-json --cookies {COOKIES_PATH} \"{params['media_url']}\" > metadata.json"
         process = subprocess.run(command, shell=True)
 
         if process.returncode == 0:
@@ -134,12 +143,15 @@ def add_media(params):
                         continue
                     image_url = image_obj[1]
                     image_data = image_obj[2]
-                    category = image_data["category"]
+                    website = image_data["category"]
                     num = image_data["num"]
                     image_extension = image_data["extension"]
                     media = MediaModel()
 
-                    if category == "twitter":
+                    # update thumbnail of photos album
+                    photos_album.thumbnail_path = image_url
+
+                    if website == "twitter":
                         image_data = image_obj[2]
                         uploader = image_data["author"]["nick"]
                         username = image_data["author"]["name"]
@@ -156,7 +168,7 @@ def add_media(params):
                         media.uploader = uploader
                         media.webpage_url = webpage_url
 
-                    elif category == "instagram":
+                    elif website == "instagram":
                         image_data = image_obj[2]
                         uploader = image_data["fullname"]
                         image_id = image_data["post_shortcode"]
@@ -175,10 +187,15 @@ def add_media(params):
                     else:
                         raise HTTPError(422, "Unsupported photo website")
 
+                    # check if media already exists
+                    q = session.query(MediaModel).filter(MediaModel.id == media.id)
+                    if q.first():
+                        raise HTTPError(400, "Media already exists")
+
                     # Download image at image_url
                     # extract image extension from image url
                     image_filename = f"image.{image_extension}"
-                    image_path = f"images/{category}/{image_id}/{num}.{image_extension}"
+                    image_path = f"images/{website}/{image_id}/{num}.{image_extension}"
                     command = f"curl \"{image_url}\" -o \"{image_filename}\""
                     process = subprocess.run(command, shell=True)
 
@@ -194,11 +211,11 @@ def add_media(params):
                     image_url = f"{CACHE_DOMAIN}/file/{bucket.name}/{image_path}"
                     media.thumbnail_path = image_url
 
-                    # set thumbnail of all albums to thumbnail of media
-                    q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
-                    for album in q.all():
-                        album.thumbnail_path = image_url
-                        media.albums.append(album)
+                    # # set thumbnail of all albums to thumbnail of media
+                    # q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
+                    # for album in q.all():
+                    #     album.thumbnail_path = image_url
+                    #     media.albums.append(album)
 
                     # append photos album to media
                     media.albums.append(photos_album)
@@ -214,16 +231,16 @@ def add_media(params):
                             session.add(uploader_album)
 
                         # if website not an album, add as new album
-                        q = session.query(AlbumModel).filter(AlbumModel.name == f"website={category}")
+                        q = session.query(AlbumModel).filter(AlbumModel.name == f"website={website}")
                         if not q.first():
-                            print(f"website={category} not found, creating new album")
+                            print(f"website={website} not found, creating new album")
                             website_album = AlbumModel()
-                            website_album.name = f"website={category}"
+                            website_album.name = f"website={website}"
                             website_album.thumbnail_path = image_url
                             session.add(website_album)
 
                     uploader_album = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}").first()
-                    website_album = session.query(AlbumModel).filter(AlbumModel.name == f"website={category}").first()
+                    website_album = session.query(AlbumModel).filter(AlbumModel.name == f"website={website}").first()
 
                     media.albums.append(uploader_album)
                     media.albums.append(website_album)
@@ -231,9 +248,6 @@ def add_media(params):
                     session.add(media)
 
                 subprocess.run("rm metadata.json", shell=True)
-
-                # update thumbnail of photos album
-                photos_album.thumbnail_path = image_url
         else:
             raise HTTPError(400, "Invalid media URL")
 
@@ -243,27 +257,37 @@ def add_media(params):
         session.rollback()
         raise HTTPError(400, "Media already exists")
 
-    return {}
+    return {
+        "website": website
+    }
 
 
-class AddMediaToAlbumIn(Schema):
+class AddMediaToAlbumsIn(Schema):
     media_id = String(validate=validate_ksuid)
-    album_id = String(validate=validate_ksuid)
+    album_ids = List(String(validate=validate_ksuid))
 
 
-@media_bp.post("/add-to-album")
-@media_bp.input(AddMediaToAlbumIn, arg_name="params")
+@media_bp.post("/add-to-albums")
+@media_bp.input(AddMediaToAlbumsIn, arg_name="params")
 @media_bp.output({})
-def add_media_to_album(params):
+def add_media_to_albums(params):
     from api.app import session
-    media = session.query(MediaModel).filter(MediaModel.id == str(params["media_id"])).first()
-    album = session.query(AlbumModel).filter(AlbumModel.id == str(params["album_id"])).first()
-    media.albums.append(album)
-    try:
-        session.commit()
-    except IntegrityError:
-        session.rollback()
-        raise HTTPError(400, "Media already in album")
+
+    # get media
+    q = session.query(MediaModel).filter(MediaModel.id == str(params["media_id"]))
+    media = q.first()
+
+    if not media:
+        raise HTTPError(404, "Media not found")
+
+    # Set thumbnail of all albums to thumbnail of media
+    q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
+    for album in q.all():
+        if album not in media.albums:
+            album.thumbnail_path = media.thumbnail_path
+            media.albums.append(album)
+
+    session.commit()
     return {}
 
 
