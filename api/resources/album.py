@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from api.schemas.main import AlbumSchema
 from models.base import AlbumModel
-from nguylinc_python_utils.misc import validate_ksuid
+from nguylinc_python_utils.misc import validate_ksuid, get_ksuid
 
 album_bp = APIBlueprint("Album", __name__, url_prefix="/album")
 
@@ -90,4 +90,27 @@ def delete_album(params):
     for album_id in params["album_ids"]:
         session.query(AlbumModel).filter(AlbumModel.id == album_id).delete()
     session.commit()
+    return {}
+
+
+class RenameAlbumIn(Schema):
+    album_id = String(validate=validate_ksuid)
+    new_name = String()
+
+
+@album_bp.put("/rename")
+@album_bp.input(RenameAlbumIn, arg_name="params")
+@album_bp.output({})
+def rename_album(params):
+    from api.app import session
+    album = session.query(AlbumModel).filter(AlbumModel.id == params["album_id"]).one()
+    album.name = params["new_name"]
+    album.id = get_ksuid()
+    session.commit()
+
+    # rename all media_albums with the new album id
+    session.execute(
+        f"UPDATE media_albums SET album_id = '{album.id}' WHERE album_id = '{params['album_id']}'"
+    )
+
     return {}

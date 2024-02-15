@@ -4,6 +4,8 @@ info:
 tags:
 - name: Album
 - name: Media
+servers:
+- url: http://localhost:34200/
 paths:
   /album/:
     post:
@@ -210,6 +212,29 @@ paths:
       tags:
       - Media
       summary: Query Media
+  /album/rename:
+    put:
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+          description: Validation error
+      tags:
+      - Album
+      summary: Rename Album
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameAlbumIn'
   /media/add-to-albums:
     post:
       parameters: []
@@ -388,6 +413,13 @@ components:
             $ref: '#/components/schemas/Media'
         no_more_media:
           type: boolean
+    RenameAlbumIn:
+      type: object
+      properties:
+        album_id:
+          type: string
+        new_name:
+          type: string
     AddMediaToAlbumsIn:
       type: object
       properties:
@@ -404,4 +436,3 @@ components:
           type: string
         album_id:
           type: string
-

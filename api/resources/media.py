@@ -9,14 +9,12 @@ from sqlalchemy.exc import IntegrityError
 
 from api.schemas.main import MediaSchema
 from models.base import MediaModel, AlbumModel
-from nguylinc_python_utils.misc import validate_ksuid
 
 media_bp = APIBlueprint("Media", __name__, url_prefix="/media")
 
 
 class AddMediaIn(Schema):
     media_url = String()
-    # album_ids = List(String(validate=validate_ksuid))
 
 
 class AddMediaOut(Schema):
@@ -101,31 +99,39 @@ def add_media(params):
             q = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}")
             if not q.first():
                 print(f"uploader={uploader} not found, creating new album")
-                album = AlbumModel()
-                album.name = f"uploader={uploader}"
-                album.thumbnail_path = thumbnail
-                session.add(album)
-                media.albums.append(album)
+                uploader_album = AlbumModel()
+                uploader_album.name = f"uploader={uploader}"
+                uploader_album.thumbnail_path = thumbnail
+                uploader_album.thumbnail_media_id = media.id
+                session.add(uploader_album)
+            else:
+                uploader_album = q.first()
+
+            media.albums.append(uploader_album)
 
             # if website not an album, add as new album
             q = session.query(AlbumModel).filter(AlbumModel.name == f"website={website}")
             if not q.first():
                 print(f"website={website} not found, creating new album")
-                album = AlbumModel()
-                album.name = f"website={website}"
-                album.thumbnail_path = thumbnail
-                session.add(album)
-                media.albums.append(album)
+                website_album = AlbumModel()
+                website_album.name = f"website={website}"
+                website_album.thumbnail_path = thumbnail
+                website_album.thumbnail_media_id = media.id
+                session.add(website_album)
+            else:
+                website_album = q.first()
+
+            media.albums.append(website_album)
 
             videos_album = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos").first()
+            videos_album.thumbnail_path = thumbnail
+            videos_album.thumbnail_media_id = media.id
             media.albums.append(videos_album)
 
             session.add(media)
 
             subprocess.run("rm metadata.info.json", shell=True)
 
-    # else:
-    #     raise HTTPError(400, "Invalid media URL")
     else:
         command = f"gallery-dl --no-download --dump-json --cookies {COOKIES_PATH} \"{params['media_url']}\" > metadata.json"
         process = subprocess.run(command, shell=True)
@@ -144,6 +150,7 @@ def add_media(params):
                     image_url = image_obj[1]
                     image_data = image_obj[2]
                     website = image_data["category"]
+                    website = website[0].upper() + website[1:]
                     num = image_data["num"]
                     image_extension = image_data["extension"]
                     media = MediaModel()
@@ -151,7 +158,7 @@ def add_media(params):
                     # update thumbnail of photos album
                     photos_album.thumbnail_path = image_url
 
-                    if website == "twitter":
+                    if website == "Twitter":
                         image_data = image_obj[2]
                         uploader = image_data["author"]["nick"]
                         username = image_data["author"]["name"]
@@ -164,11 +171,11 @@ def add_media(params):
                         print(webpage_url)
                         # print(content)
 
-                        media.id = f"twitter#{image_id}#{num}"
+                        media.id = f"{website}#{image_id}#{num}"
                         media.uploader = uploader
                         media.webpage_url = webpage_url
 
-                    elif website == "instagram":
+                    elif website == "Instagram":
                         image_data = image_obj[2]
                         uploader = image_data["fullname"]
                         image_id = image_data["post_shortcode"]
@@ -180,7 +187,7 @@ def add_media(params):
                         print(webpage_url)
                         # print(description)
 
-                        media.id = f"instagram#{image_id}#{num}"
+                        media.id = f"{website}#{image_id}#{num}"
                         media.uploader = uploader
                         media.webpage_url = webpage_url
 
@@ -227,7 +234,8 @@ def add_media(params):
                             print(f"uploader={uploader} not found, creating new album")
                             uploader_album = AlbumModel()
                             uploader_album.name = f"uploader={uploader}"
-                            uploader_album.thumbnail_path = image_url
+                            # uploader_album.thumbnail_path = image_url
+                            # uploader_album.thumbnail_media_id = media.id
                             session.add(uploader_album)
 
                         # if website not an album, add as new album
@@ -236,11 +244,16 @@ def add_media(params):
                             print(f"website={website} not found, creating new album")
                             website_album = AlbumModel()
                             website_album.name = f"website={website}"
-                            website_album.thumbnail_path = image_url
+                            # website_album.thumbnail_path = image_url
+                            # website_album.thumbnail_media_id = media.id
                             session.add(website_album)
 
                     uploader_album = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}").first()
+                    uploader_album.thumbnail_path = image_url
+                    uploader_album.thumbnail_media_id = media.id
                     website_album = session.query(AlbumModel).filter(AlbumModel.name == f"website={website}").first()
+                    website_album.thumbnail_path = image_url
+                    website_album.thumbnail_media_id = media.id
 
                     media.albums.append(uploader_album)
                     media.albums.append(website_album)
@@ -263,8 +276,8 @@ def add_media(params):
 
 
 class AddMediaToAlbumsIn(Schema):
-    media_id = String(validate=validate_ksuid)
-    album_ids = List(String(validate=validate_ksuid))
+    media_id = String()
+    album_ids = List(String())
 
 
 @media_bp.post("/add-to-albums")
@@ -292,8 +305,8 @@ def add_media_to_albums(params):
 
 
 class RemoveMediaFromAlbumIn(Schema):
-    media_id = String(validate=validate_ksuid)
-    album_id = String(validate=validate_ksuid)
+    media_id = String()
+    album_id = String()
 
 
 @media_bp.post("/remove-from-album")
@@ -336,7 +349,7 @@ class QueryMediaIn(Schema):
     limit = Integer(load_default=30)
     descending = Boolean(load_default=True)
     # search = String(load_default=None)
-    album_id = String(load_default=None, validate=validate_ksuid)
+    album_id = String(load_default=None)
 
 
 class QueryMediaOut(Schema):
@@ -384,7 +397,7 @@ def query_media(params):
 
 
 class DeleteMediaIn(Schema):
-    media_ids = List(String(validate=validate_ksuid))
+    media_ids = List(String())
 
 
 @media_bp.delete("/")
