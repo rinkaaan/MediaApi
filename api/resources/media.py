@@ -369,15 +369,15 @@ def query_media(params):
 
     if params["last_id"]:
         if params["descending"]:
-            q = q.filter(MediaModel.id < params["last_id"])
+            q = q.filter(MediaModel.created_at_ksuid < params["last_id"])
         else:
-            q = q.filter(MediaModel.id > params["last_id"])
+            q = q.filter(MediaModel.created_at_ksuid > params["last_id"])
 
     # if params["search"]:
     #     q = q.filter(MediaModel.title.contains(params["search"]))
 
     if params["descending"]:
-        q = q.order_by(desc(MediaModel.created_at))
+        q = q.order_by(desc(MediaModel.created_at_ksuid))
     q = q.limit(params["limit"])
 
     if params["album_id"]:

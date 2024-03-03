@@ -4,8 +4,6 @@ info:
 tags:
 - name: Album
 - name: Media
-servers:
-- url: http://localhost:34200/
 paths:
   /album/:
     post:
@@ -375,6 +373,8 @@ components:
         created_at:
           type: string
           format: date-time
+        created_at_ksuid:
+          type: string
         updated_at:
           type: string
           format: date-time
@@ -436,3 +436,4 @@ components:
           type: string
         album_id:
           type: string
+

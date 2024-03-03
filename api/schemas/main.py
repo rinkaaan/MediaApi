@@ -13,7 +13,7 @@ class AlbumSchema(Schema):
 
 
 class MediaSchema(Schema):
-    id = String(validate=validate_ksuid)
+    id = String()
     title = String()
     description = String()
     uploader = String()
@@ -33,4 +33,5 @@ class MediaSchema(Schema):
     # automatically create album for media's author, website source, media type (photo or video), and date (Jan 2024)
     albums = List(Nested(AlbumSchema))
     created_at = DateTime()
+    created_at_ksuid = String()
     updated_at = DateTime()
