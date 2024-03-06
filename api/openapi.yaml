@@ -5,6 +5,16 @@ tags:
 - name: Album
 - name: Media
 paths:
+  /ping:
+    get:
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful response
+      summary: Ping
   /album/:
     post:
       parameters: []

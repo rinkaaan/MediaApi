@@ -68,6 +68,11 @@ def shutdown_session(exception=None):
         session.remove()
 
 
+@app.get("/ping")
+def ping():
+    return "pong"
+
+
 @app.before_request
 @app.auth_required(auth)
 def add_fake_delay():
