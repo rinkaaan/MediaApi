@@ -37,7 +37,7 @@ session = init_sqlite_db(Base)
 app.config["SPEC_FORMAT"] = "yaml"
 app.config["LOCAL_SPEC_PATH"] = "openapi.yaml"
 app.config["SYNC_LOCAL_SPEC"] = True
-CORS(app, supports_credentials=False, origins="*", allow_headers="*")
+CORS(app, supports_credentials=False, origins="*", allow_headers="*", expose_headers="*")
 
 app.register_blueprint(album_bp)
 app.register_blueprint(media_bp)
@@ -77,19 +77,13 @@ def ping():
 @app.auth_required(auth)
 def add_fake_delay():
     # fake_delay = 100
-    fake_delay = 0.5
+    # fake_delay = 0.5
     # fake_delay = 1
-    # fake_delay = 0
+    fake_delay = 0
     time.sleep(fake_delay)
 
 
-port = 34201
-BASE_URL = "http://127.0.0.1:" + str(port)
-
-
 def init_models():
-    from api.app import session
-
     # if media_type=Videos not found, create it
     q = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos")
     if not q.first():
@@ -111,4 +105,4 @@ def init_models():
 
 if __name__ == "__main__":
     init_models()
-    app.run(port=port, debug=True)
+    app.run(port=34201, debug=True)
