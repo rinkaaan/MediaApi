@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables from a .env file
-load_dotenv()
+load_dotenv(dotenv_path="../../api/.env")
 
 # Retrieve B2 credentials from environment variables
 b2_account_id = os.getenv("B2_ACCOUNT_ID")
