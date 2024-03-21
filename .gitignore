@@ -7,3 +7,4 @@
 *.jpg
 *.png
 __pycache__
+api/metadata.json
