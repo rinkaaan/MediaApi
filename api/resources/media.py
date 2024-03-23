@@ -1,6 +1,7 @@
 import json
 import os.path
 import subprocess
+import threading
 
 from apiflask import APIBlueprint, Schema, HTTPError
 from apiflask.fields import String, List, Integer, Boolean, Nested
@@ -404,11 +405,23 @@ class DeleteMediaIn(Schema):
 @media_bp.input(DeleteMediaIn, arg_name="params")
 @media_bp.output({})
 def delete_media(params):
-    from api.app import session
+    from api.app import session, bucket
+
+    paths_to_delete = []
+
     for media_id in params["media_ids"]:
-        media = session.query(MediaModel).filter(MediaModel.id == str(media_id)).first()
+        media: MediaModel = session.query(MediaModel).filter(MediaModel.id == str(media_id)).first()
+        paths_to_delete.append(media.thumbnail_path)
         if not media:
             continue
         session.delete(media)
     session.commit()
+
+    # Delete files from bucket in separate thread to avoid blocking request
+    def delete_paths(paths):
+        for path in paths:
+            file = bucket.get_file_info_by_name(path)
+            file.delete()
+    threading.Thread(target=delete_paths, args=(paths_to_delete,)).start()
+
     return {}
