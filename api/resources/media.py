@@ -28,7 +28,7 @@ class AddMediaOut(Schema):
 def add_media(params):
     from api.app import session, bucket, CACHE_DOMAIN, COOKIES_PATH
 
-    command = f"yt-dlp --write-info-json --skip-download -o metadata --cookies {COOKIES_PATH} \"{params['media_url']}\""
+    command = f"yt-dlp --write-info-json --skip-download --no-playlist -o metadata --cookies {COOKIES_PATH} \"{params['media_url']}\""
     process = subprocess.run(command, shell=True)
 
     website = None
@@ -81,11 +81,9 @@ def add_media(params):
             )
             subprocess.run(f"rm thumbnail.{thumbnail_extension}", shell=True)
 
-            thumbnail = f"{CACHE_DOMAIN}/file/{bucket.name}/{thumbnail_path}"
-
             media = MediaModel()
             media.id = f"{website}#{id}"
-            media.thumbnail_path = thumbnail
+            media.thumbnail_path = thumbnail_path
             media.uploader = uploader
             media.duration = duration
             media.webpage_url = webpage_url
@@ -102,7 +100,7 @@ def add_media(params):
                 print(f"uploader={uploader} not found, creating new album")
                 uploader_album = AlbumModel()
                 uploader_album.name = f"uploader={uploader}"
-                uploader_album.thumbnail_path = thumbnail
+                uploader_album.thumbnail_path = thumbnail_path
                 uploader_album.thumbnail_media_id = media.id
                 session.add(uploader_album)
             else:
@@ -116,7 +114,7 @@ def add_media(params):
                 print(f"website={website} not found, creating new album")
                 website_album = AlbumModel()
                 website_album.name = f"website={website}"
-                website_album.thumbnail_path = thumbnail
+                website_album.thumbnail_path = thumbnail_path
                 website_album.thumbnail_media_id = media.id
                 session.add(website_album)
             else:
@@ -125,7 +123,7 @@ def add_media(params):
             media.albums.append(website_album)
 
             videos_album = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos").first()
-            videos_album.thumbnail_path = thumbnail
+            videos_album.thumbnail_path = thumbnail_path
             videos_album.thumbnail_media_id = media.id
             media.albums.append(videos_album)
 
@@ -216,8 +214,8 @@ def add_media(params):
                     )
                     subprocess.run(f"rm image.{image_extension}", shell=True)
 
-                    image_url = f"{CACHE_DOMAIN}/file/{bucket.name}/{image_path}"
-                    media.thumbnail_path = image_url
+                    # image_url = f"{CACHE_DOMAIN}/file/{bucket.name}/{image_path}"
+                    media.thumbnail_path = image_path
 
                     # # set thumbnail of all albums to thumbnail of media
                     # q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
