@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from api.schemas.main import AlbumSchema
 from models.base import AlbumModel
-from nguylinc_python_utils.misc import validate_ksuid, get_ksuid
+from utils.misc import validate_ksuid, get_ksuid
 
 album_bp = APIBlueprint("Album", __name__, url_prefix="/album")
 

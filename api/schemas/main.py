@@ -1,7 +1,7 @@
 from apiflask import Schema
 from apiflask.fields import Integer, List, Nested, String, DateTime
 
-from nguylinc_python_utils.misc import validate_ksuid
+from utils.misc import validate_ksuid
 
 
 class AlbumSchema(Schema):

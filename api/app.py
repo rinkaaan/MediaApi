@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from api.resources.album import album_bp
 from api.resources.media import media_bp
 from models.base import Base, AlbumModel
-from nguylinc_python_utils.sqlalchemy import init_sqlite_db
+from utils.sqlalchemy import init_sqlite_db
 
 load_dotenv()
 
