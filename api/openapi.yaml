@@ -4,6 +4,9 @@ info:
 tags:
 - name: Album
 - name: Media
+servers:
+- name: Dev Server
+  url: http://localhost:34201
 paths:
   /ping:
     get:
@@ -446,4 +449,3 @@ components:
           type: string
         album_id:
           type: string
-

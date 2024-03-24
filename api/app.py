@@ -30,6 +30,16 @@ b2_api.authorize_account("production", B2_ACCOUNT_ID, B2_APPLICATION_KEY)
 bucket = b2_api.get_bucket_by_name(B2_BUCKET_NAME)
 
 app = APIFlask(__name__, title="Media API", version="0.1.0", spec_path="/openapi.yaml", docs_ui="rapidoc")
+app.servers = [
+    # {
+    #     'name': 'Production Server',
+    #     'url': 'https://media-api.lincolnnguyen.me'
+    # },
+    {
+        'name': 'Dev Server',
+        'url': 'http://localhost:34201'
+    },
+]
 auth = HTTPBasicAuth()
 socketio = SocketIO(app, cors_allowed_origins="*")
 session = init_sqlite_db(Base)
