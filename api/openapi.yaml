@@ -2,11 +2,11 @@ info:
   title: Media API
   version: 0.1.0
 tags:
+- name: Main
 - name: Album
 - name: Media
 servers:
-- name: Dev Server
-  url: http://localhost:34201
+- url: http://127.0.0.1:34201/
 paths:
   /ping:
     get:
@@ -223,6 +223,29 @@ paths:
       tags:
       - Media
       summary: Query Media
+  /main/cookies:
+    post:
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+          description: Validation error
+      tags:
+      - Main
+      summary: Update Cookies
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Cookies'
   /album/rename:
     put:
       parameters: []
@@ -426,6 +449,13 @@ components:
             $ref: '#/components/schemas/Media'
         no_more_media:
           type: boolean
+    Cookies:
+      type: object
+      properties:
+        cookies:
+          x-maximum: 1 MB
+          type: string
+          format: binary
     RenameAlbumIn:
       type: object
       properties:

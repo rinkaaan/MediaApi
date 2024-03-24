@@ -10,6 +10,7 @@ from flask_socketio import SocketIO
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from api.resources.album import album_bp
+from api.resources.main import main_bp
 from api.resources.media import media_bp
 from models.base import Base, AlbumModel
 from utils.sqlalchemy import init_sqlite_db
@@ -30,16 +31,6 @@ b2_api.authorize_account("production", B2_ACCOUNT_ID, B2_APPLICATION_KEY)
 bucket = b2_api.get_bucket_by_name(B2_BUCKET_NAME)
 
 app = APIFlask(__name__, title="Media API", version="0.1.0", spec_path="/openapi.yaml", docs_ui="rapidoc")
-app.servers = [
-    # {
-    #     'name': 'Production Server',
-    #     'url': 'https://media-api.lincolnnguyen.me'
-    # },
-    {
-        'name': 'Dev Server',
-        'url': 'http://localhost:34201'
-    },
-]
 auth = HTTPBasicAuth()
 socketio = SocketIO(app, cors_allowed_origins="*")
 session = init_sqlite_db(Base)
@@ -49,6 +40,7 @@ app.config["LOCAL_SPEC_PATH"] = "openapi.yaml"
 app.config["SYNC_LOCAL_SPEC"] = True
 CORS(app, supports_credentials=False, origins="*", allow_headers="*", expose_headers="*")
 
+app.register_blueprint(main_bp)
 app.register_blueprint(album_bp)
 app.register_blueprint(media_bp)
 
@@ -63,6 +55,7 @@ def verify_password(username: str, password: str) -> typing.Union[str, None]:
         username in users
         and check_password_hash(users[username], password)
     ):
+        print(f"User {username} authenticated")
         return username
     return None
 
