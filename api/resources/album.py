@@ -1,10 +1,11 @@
 from apiflask import APIBlueprint, Schema, HTTPError
 from apiflask.fields import String, Integer, List, Nested, Boolean
+from typing import List as ListType
 from sqlalchemy import desc, asc
 from sqlalchemy.exc import IntegrityError
 
 from api.schemas.main import AlbumSchema
-from models.base import AlbumModel
+from models.base import AlbumModel, MediaModel
 from utils.misc import validate_ksuid, get_ksuid
 
 album_bp = APIBlueprint("Album", __name__, url_prefix="/album")
@@ -39,7 +40,7 @@ def add_album(params):
 
 class QueryAlbumsIn(Schema):
     last_id = String(load_default=None)
-    limit = Integer(load_default=30)
+    limit = Integer(load_default=60)
     descending = Boolean(load_default=True)
     search = String(load_default=None)
 
@@ -71,9 +72,22 @@ def query_albums(params):
         q = q.order_by(asc(AlbumModel.id))
 
     q = q.limit(params["limit"])
-    albums = [album.to_dict() for album in q]
+    albums: ListType[AlbumModel] = q.all()
+    album_schemas = []
+
+    for album in albums:
+        sorted_medias = sorted(album.media, key=lambda media: media.created_at, reverse=True)
+        if sorted_medias:
+            newest_media: MediaModel = sorted_medias[0]
+            album_schema: AlbumSchema = AlbumSchema.from_dict(album.to_dict())
+            album_schema.thumbnail_path = newest_media.thumbnail_path
+            album_schemas.append(album_schema)
+        else:
+            print(f"No media in {album.name}")
+            session.delete(album)
+
     return {
-        "albums": albums,
+        "albums": album_schemas,
         "no_more_albums": len(albums) < params["limit"]
     }
 

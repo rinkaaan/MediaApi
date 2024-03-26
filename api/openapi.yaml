@@ -5,8 +5,6 @@ tags:
 - name: Main
 - name: Album
 - name: Media
-servers:
-- url: http://127.0.0.1:34201/
 paths:
   /ping:
     get:
@@ -147,7 +145,7 @@ paths:
         name: limit
         schema:
           type: integer
-          default: 30
+          default: 60
         required: false
       - in: query
         name: descending
@@ -192,7 +190,7 @@ paths:
         name: limit
         schema:
           type: integer
-          default: 30
+          default: 60
         required: false
       - in: query
         name: descending
@@ -479,3 +477,4 @@ components:
           type: string
         album_id:
           type: string
+

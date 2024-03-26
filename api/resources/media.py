@@ -26,7 +26,7 @@ class AddMediaOut(Schema):
 @media_bp.input(AddMediaIn, arg_name="params")
 @media_bp.output(AddMediaOut)
 def add_media(params):
-    from api.app import session, bucket, CACHE_DOMAIN, COOKIES_PATH
+    from api.app import session, bucket, COOKIES_PATH
 
     command = f"yt-dlp --write-info-json --skip-download --no-playlist -o metadata --cookies {COOKIES_PATH} \"{params['media_url']}\""
     process = subprocess.run(command, shell=True)
@@ -83,16 +83,9 @@ def add_media(params):
 
             media = MediaModel()
             media.id = f"{website}#{id}"
-            media.thumbnail_path = thumbnail_path
             media.uploader = uploader
             media.duration = duration
             media.webpage_url = webpage_url
-
-            # # set thumbnail of all albums to thumbnail of media
-            # q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
-            # for album in q.all():
-            #     album.thumbnail_path = thumbnail
-            #     media.albums.append(album)
 
             # if uploader not an album, add as new album
             q = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}")
@@ -100,8 +93,6 @@ def add_media(params):
                 print(f"uploader={uploader} not found, creating new album")
                 uploader_album = AlbumModel()
                 uploader_album.name = f"uploader={uploader}"
-                uploader_album.thumbnail_path = thumbnail_path
-                uploader_album.thumbnail_media_id = media.id
                 session.add(uploader_album)
             else:
                 uploader_album = q.first()
@@ -114,8 +105,6 @@ def add_media(params):
                 print(f"website={website} not found, creating new album")
                 website_album = AlbumModel()
                 website_album.name = f"website={website}"
-                website_album.thumbnail_path = thumbnail_path
-                website_album.thumbnail_media_id = media.id
                 session.add(website_album)
             else:
                 website_album = q.first()
@@ -123,8 +112,6 @@ def add_media(params):
             media.albums.append(website_album)
 
             videos_album = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Videos").first()
-            videos_album.thumbnail_path = thumbnail_path
-            videos_album.thumbnail_media_id = media.id
             media.albums.append(videos_album)
 
             session.add(media)
@@ -140,6 +127,9 @@ def add_media(params):
             with open("metadata.json", "r") as f:
                 metadata = json.load(f)
 
+                if "https://" not in str(metadata).lower():
+                    raise HTTPError(400, "Invalid media URL")
+
                 photos_album = session.query(AlbumModel).filter(AlbumModel.name == f"media_type=Photos").first()
 
                 for image_obj in metadata:
@@ -153,9 +143,6 @@ def add_media(params):
                     num = image_data["num"]
                     image_extension = image_data["extension"]
                     media = MediaModel()
-
-                    # update thumbnail of photos album
-                    photos_album.thumbnail_path = image_url
 
                     if website == "Twitter":
                         image_data = image_obj[2]
@@ -217,12 +204,6 @@ def add_media(params):
                     # image_url = f"{CACHE_DOMAIN}/file/{bucket.name}/{image_path}"
                     media.thumbnail_path = image_path
 
-                    # # set thumbnail of all albums to thumbnail of media
-                    # q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
-                    # for album in q.all():
-                    #     album.thumbnail_path = image_url
-                    #     media.albums.append(album)
-
                     # append photos album to media
                     media.albums.append(photos_album)
 
@@ -233,8 +214,6 @@ def add_media(params):
                             print(f"uploader={uploader} not found, creating new album")
                             uploader_album = AlbumModel()
                             uploader_album.name = f"uploader={uploader}"
-                            # uploader_album.thumbnail_path = image_url
-                            # uploader_album.thumbnail_media_id = media.id
                             session.add(uploader_album)
 
                         # if website not an album, add as new album
@@ -243,16 +222,10 @@ def add_media(params):
                             print(f"website={website} not found, creating new album")
                             website_album = AlbumModel()
                             website_album.name = f"website={website}"
-                            # website_album.thumbnail_path = image_url
-                            # website_album.thumbnail_media_id = media.id
                             session.add(website_album)
 
                     uploader_album = session.query(AlbumModel).filter(AlbumModel.name == f"uploader={uploader}").first()
-                    uploader_album.thumbnail_path = image_url
-                    uploader_album.thumbnail_media_id = media.id
                     website_album = session.query(AlbumModel).filter(AlbumModel.name == f"website={website}").first()
-                    website_album.thumbnail_path = image_url
-                    website_album.thumbnail_media_id = media.id
 
                     media.albums.append(uploader_album)
                     media.albums.append(website_album)
@@ -292,11 +265,9 @@ def add_media_to_albums(params):
     if not media:
         raise HTTPError(404, "Media not found")
 
-    # Set thumbnail of all albums to thumbnail of media
     q = session.query(AlbumModel).filter(AlbumModel.id.in_(params["album_ids"]))
     for album in q.all():
         if album not in media.albums:
-            album.thumbnail_path = media.thumbnail_path
             media.albums.append(album)
 
     session.commit()
@@ -345,7 +316,7 @@ def get_media(params):
 
 class QueryMediaIn(Schema):
     last_id = String(load_default=None)
-    limit = Integer(load_default=30)
+    limit = Integer(load_default=60)
     descending = Boolean(load_default=True)
     # search = String(load_default=None)
     album_id = String(load_default=None)
@@ -420,6 +391,7 @@ def delete_media(params):
         for path in paths:
             file = bucket.get_file_info_by_name(path)
             file.delete()
+
     threading.Thread(target=delete_paths, args=(paths_to_delete,)).start()
 
     return {}

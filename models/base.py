@@ -15,8 +15,6 @@ class AlbumModel(Base, BaseExtended):
     created_at: ColumnElement = Column(DateTime(), default=get_timestamp)
     updated_at: ColumnElement = Column(DateTime(), index=True, default=get_timestamp)
     name = Column(Text(), index=True, unique=True)
-    thumbnail_path = Column(String())
-    thumbnail_media_id = Column(String(length=27), index=True)
     media = relationship("MediaModel", secondary="media_albums", back_populates="albums")
 
 
