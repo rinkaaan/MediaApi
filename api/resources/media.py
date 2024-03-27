@@ -84,6 +84,7 @@ def add_media(params):
             media = MediaModel()
             media.id = f"{website}#{id}"
             media.uploader = uploader
+            media.thumbnail_path = thumbnail_path
             media.duration = duration
             media.webpage_url = webpage_url
 
