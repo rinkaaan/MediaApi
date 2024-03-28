@@ -351,15 +351,20 @@ def query_media(params):
         q = q.order_by(desc(MediaModel.created_at_ksuid))
     q = q.limit(params["limit"])
 
-    if params["album_id"]:
-        media_list = [media.to_dict() for media in q.all()]
-    # if album was not specified, populate albums field of each media
-    else:
-        media_list = []
-        for media in q.all():
-            media_dict = media.to_dict()
-            media_dict["albums"] = [album.to_dict() for album in media.albums]
-            media_list.append(media_dict)
+    # if params["album_id"]:
+    #     media_list = [media.to_dict() for media in q.all()]
+    # # if album was not specified, populate albums field of each media
+    # else:
+    #     media_list = []
+    #     for media in q.all():
+    #         media_dict = media.to_dict()
+    #         media_dict["albums"] = [album.to_dict() for album in media.albums]
+    #         media_list.append(media_dict)
+    media_list = []
+    for media in q.all():
+        media_dict = media.to_dict()
+        media_dict["albums"] = [album.to_dict() for album in media.albums]
+        media_list.append(media_dict)
 
     return {
         "media": media_list,

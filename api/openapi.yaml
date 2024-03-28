@@ -17,6 +17,29 @@ paths:
           description: Successful response
       summary: Ping
   /album/:
+    get:
+      parameters:
+      - in: query
+        name: album_id
+        schema:
+          type: string
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+          description: Successful response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+          description: Validation error
+      tags:
+      - Album
+      summary: Get Album
     post:
       parameters: []
       responses:
@@ -331,6 +354,21 @@ components:
         message:
           type: string
       type: object
+    Album:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        thumbnail_path:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     AddAlbumIn:
       type: object
       properties:
@@ -348,21 +386,6 @@ components:
           type: array
           items:
             type: string
-    Album:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        thumbnail_path:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
     Media:
       type: object
       properties:

@@ -38,6 +38,19 @@ def add_album(params):
     }
 
 
+class GetAlbumIn(Schema):
+    album_id = String(validate=validate_ksuid)
+
+
+@album_bp.get("/")
+@album_bp.input(GetAlbumIn, arg_name="params", location="query")
+@album_bp.output(AlbumSchema)
+def get_album(params):
+    from api.app import session
+    album = session.query(AlbumModel).filter(AlbumModel.id == params["album_id"]).one()
+    return album
+
+
 class QueryAlbumsIn(Schema):
     last_id = String(load_default=None)
     limit = Integer(load_default=60)
